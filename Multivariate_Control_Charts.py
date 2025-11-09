@@ -91,8 +91,11 @@ def main():
         
         # Fallback to index if Date column is not suitable
         try:
-            pd.to_datetime(x_axis)
+            # Convert x_axis to datetime objects. This is the fix.
+            x_axis = pd.to_datetime(x_axis)
         except Exception:
+            # If conversion fails, post a warning and fall back to the index column
+            st.warning(f"Could not parse '{meta_cols[1]}' as dates. Falling back to '{meta_cols[0]}' for the x-axis.")
             x_axis = df.loc[plot_index, meta_cols[0]]
             x_axis_label = meta_cols[0]
 
