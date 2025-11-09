@@ -86,18 +86,21 @@ def main():
         
         # Get corresponding index/date for plotting
         plot_index = X.index
-        x_axis = df.loc[plot_index, meta_cols[1]]
-        x_axis_label = meta_cols[1]
         
-        # Fallback to index if Date column is not suitable
-        try:
-            # Convert x_axis to datetime objects. This is the fix.
-            x_axis = pd.to_datetime(x_axis)
-        except Exception:
-            # If conversion fails, post a warning and fall back to the index column
-            st.warning(f"Could not parse '{meta_cols[1]}' as dates. Falling back to '{meta_cols[0]}' for the x-axis.")
-            x_axis = df.loc[plot_index, meta_cols[0]]
-            x_axis_label = meta_cols[0]
+        # --- X-AXIS AND HOVER-TEXT LOGIC ---
+        # 1. Use Index (Column A) for the x-axis value
+        x_axis = df.loc[plot_index, meta_cols[0]]
+        x_axis_label = meta_cols[0]
+        
+        # 2. Use Date (Column B) for the hover-over "stamp"
+        date_stamp = df.loc[plot_index, meta_cols[1]].astype(str)
+        index_stamp = df.loc[plot_index, meta_cols[0]].astype(str)
+        
+        # Create a combined hover text Series, indexed like x_axis and T2_values
+        hover_texts_list = [f"{meta_cols[0]}: {idx}<br>{meta_cols[1]}: {date}" 
+                            for idx, date in zip(index_stamp, date_stamp)]
+        hover_texts = pd.Series(hover_texts_list, index=plot_index)
+        # --- END X-AXIS AND HOVER-TEXT LOGIC ---
 
     except Exception as e:
         st.error(f"Error processing columns. Ensure first two columns are Index/Date and the rest are numeric variables. Error: {e}")
@@ -132,7 +135,8 @@ def main():
 
         fig_t2 = go.Figure()
         fig_t2.add_trace(go.Scatter(x=x_axis, y=T2_values, mode='lines+markers', name='T² Statistic',
-                                    marker=dict(color='blue'), line=dict(color='blue')))
+                                    marker=dict(color='blue'), line=dict(color='blue'),
+                                    hovertext=hover_texts, hoverinfo="y+text"))
         
         # Add UCL
         fig_t2.add_shape(type='line', x0=x_axis.min(), y0=UCL_T2, x1=x_axis.max(), y1=UCL_T2,
@@ -143,7 +147,8 @@ def main():
         if not ooc_t2_indices.empty:
             fig_t2.add_trace(go.Scatter(x=x_axis.loc[ooc_t2_indices], y=T2_values.loc[ooc_t2_indices],
                                         mode='markers', name='Out of Control',
-                                        marker=dict(color='red', size=10, symbol='x')))
+                                        marker=dict(color='red', size=10, symbol='x'),
+                                        hovertext=hover_texts.loc[ooc_t2_indices], hoverinfo="y+text"))
 
         fig_t2.update_layout(
             title="Hotelling's T² Chart",
@@ -205,7 +210,8 @@ def main():
 
         fig_t2_pca = go.Figure()
         fig_t2_pca.add_trace(go.Scatter(x=x_axis, y=T2_pca_values, mode='lines+markers', name='PCA T² Statistic',
-                                        marker=dict(color='green'), line=dict(color='green')))
+                                        marker=dict(color='green'), line=dict(color='green'),
+                                        hovertext=hover_texts, hoverinfo="y+text"))
         
         fig_t2_pca.add_shape(type='line', x0=x_axis.min(), y0=UCL_T2_pca, x1=x_axis.max(), y1=UCL_T2_pca,
                              line=dict(color='red', dash='dot', width=2), name=f'UCL (1-α={1-alpha:.3f})')
@@ -214,7 +220,8 @@ def main():
         if len(ooc_t2_pca_indices) > 0:
             fig_t2_pca.add_trace(go.Scatter(x=x_axis.loc[ooc_t2_pca_indices], y=T2_pca_values[T2_pca_values > UCL_T2_pca],
                                             mode='markers', name='Out of Control',
-                                            marker=dict(color='red', size=10, symbol='x')))
+                                            marker=dict(color='red', size=10, symbol='x'),
+                                            hovertext=hover_texts.loc[ooc_t2_pca_indices], hoverinfo="y+text"))
 
         fig_t2_pca.update_layout(title="PCA T² Chart (Model Space)", xaxis_title=x_axis_label, yaxis_title="PCA T² Statistic")
         st.plotly_chart(fig_t2_pca, use_container_width=True)
@@ -246,7 +253,8 @@ def main():
 
     fig_dmodx = go.Figure()
     fig_dmodx.add_trace(go.Scatter(x=x_axis, y=DModX_values, mode='lines+markers', name='DModX',
-                                   marker=dict(color='purple'), line=dict(color='purple')))
+                                   marker=dict(color='purple'), line=dict(color='purple'),
+                                   hovertext=hover_texts, hoverinfo="y+text"))
 
     fig_dmodx.add_shape(type='line', x0=x_axis.min(), y0=UCL_DModX, x1=x_axis.max(), y1=UCL_DModX,
                          line=dict(color='red', dash='dot', width=2), name=f'UCL (1-α={1-alpha:.3f})')
@@ -255,7 +263,8 @@ def main():
     if len(ooc_dmodx_indices) > 0:
         fig_dmodx.add_trace(go.Scatter(x=x_axis.loc[ooc_dmodx_indices], y=DModX_values[DModX_values > UCL_DModX],
                                         mode='markers', name='Out of Control',
-                                        marker=dict(color='red', size=10, symbol='x')))
+                                        marker=dict(color='red', size=10, symbol='x'),
+                                        hovertext=hover_texts.loc[ooc_dmodx_indices], hoverinfo="y+text"))
 
     fig_dmodx.update_layout(title="DModX Chart (Residual Space)", xaxis_title=x_axis_label, yaxis_title="DModX")
     st.plotly_chart(fig_dmodx, use_container_width=True)
