@@ -117,10 +117,25 @@ def main():
 
     # --- 1. Hotelling's T² Chart ---
     st.header("1. Hotelling's T² Control Chart")
-    st.markdown("""
-    This chart combines all variables into a single statistic to monitor the overall process. 
-    It's sensitive to shifts in the mean of *any* variable or changes in their correlations.
-    """)
+    
+    with st.expander("ℹ️ How to Interpret This Chart"):
+        st.markdown("""
+        **What It Is:**
+        This chart combines all your process variables (Param1, Param2, etc.) into a **single statistic** called T². It measures the overall "statistical distance" of each point from the center of the process, accounting for all variables at once.
+        
+        **How to Read It:**
+        * **In Control:** As long as the blue points are **below** the red Upper Control Limit (UCL), your process is considered stable. This means that even if individual parameters are wiggling, the *overall system* is within its normal, expected boundaries.
+        * **Out of Control (Alarm):** A point **above** the red UCL signals a significant event. The system as a whole has shifted.
+        
+        **Important Concept: The Ellipse vs. The Rectangle**
+        * Your *individual* control charts (which you might run separately) create a "box" or "rectangle" of limits. A point can be out of control on one of these (e.g., Param1 is high) but still be *in control* on the T² chart.
+        * This is normal! The T² chart creates an "ellipse" that accounts for *correlations*. If Param1 is high, but Param2 is also high (and they normally move together), the T² chart sees this as a normal event (inside the ellipse) and does **not** alarm.
+        * An alarm on *this* chart means the point is outside the **ellipse**—a true multivariate outlier.
+        
+        
+        
+        **Limitation:** This chart tells you *if* the process is out of control, but not *why*. For that, we use the charts below.
+        """)
     
     try:
         x_mean = X.mean()
@@ -169,13 +184,27 @@ def main():
 
     # --- 2. Model-Driven Multivariate Control Chart (MDMVCC) ---
     st.header("2. Model-Driven Multivariate Control Chart (PCA)")
-    st.markdown("""
-    This section uses Principal Component Analysis (PCA) to model the normal process variation. 
-    It's more robust and provides deeper insights than the standard T² chart.
     
-    - **PCA T² Chart:** Monitors the "model space" (the major sources of variation).
-    - **DModX Chart:** Monitors the "residual space" (how far each point is from the model).
-    """)
+    with st.expander("ℹ️ How to Interpret These Charts"):
+        st.markdown("""
+        This section builds a Principal Component Analysis (PCA) model of your process's "normal" variation. It then splits the monitoring into two charts, which is much more powerful than the single T² chart above.
+        
+        ### 1. PCA T² Chart (Model Space)
+        * **What It Is:** This chart monitors the variation *within* the normal correlation structure of your data. Think of it as monitoring the "known" or "modeled" relationships.
+        * **How to Read It:** An alarm (point above the UCL) here means the process has moved **along** its normal paths, but *too far*.
+        * **Example:** Param1 and Param2 (which are correlated) *both* increased significantly. This is a "known" behavior (they move together), but the size of the shift is statistically unusual.
+        
+        ### 2. DModX Chart (Residual Space)
+        * **What It Is:** This chart monitors the distance of each point *from* the PCA model. It monitors the "unknown" or "un-modeled" variation.
+        * **How to Read It:** An alarm here is often **more serious**. It means the fundamental *correlation structure has broken*.
+        * **Example:** Param1 increased, but Param2 (which is *supposed* to increase with it) stayed flat or went down. This is a new, un-modeled event that the process has never seen before. It signals a potential change in the process itself.
+        
+        **Summary:**
+        | Chart | What It Monitors | What an Alarm Means |
+        |---|---|---|
+        | **PCA T²** | Model Space (Known Variation) | A "normal" event has gone *too far*. |
+        | **DModX** | Residual Space (Unknown Variation) | A "new" event has happened; the correlations broke. |
+        """)
 
     # Scale data for PCA
     scaler = StandardScaler()
@@ -273,10 +302,20 @@ def main():
 
     # --- 3. Contribution Plots ---
     st.header("3. Contribution Plots (Root Cause Analysis)")
-    st.markdown("""
-    When a point is out of control, these plots help identify *which variables* are responsible.
-    Select a point from the dropdown to investigate.
-    """)
+    
+    with st.expander("ℹ️ How to Interpret These Plots"):
+        st.markdown("""
+        **What They Are:**
+        These plots are your diagnostic tool. When you have an out-of-control point on any of the charts above, you select it from the dropdown here to find out *why* it's out of control.
+        
+        **How to Read Them:**
+        1.  **Select a Point:** Choose the point you want to investigate from the dropdown list.
+        2.  **Look at the Bars:** The plots show a bar for each of your original process variables.
+        3.  **Identify the Cause:** The variables with the **largest bars** (either positive or negative) are the ones that are "contributing" the most to the alarm for that specific point. This tells you where to start your investigation.
+
+        * **Hotelling T² Contributions:** Shows which variables are contributing to the *overall* T² distance.
+        * **DModX Contributions:** Shows which variables are contributing to the *DModX* (residual) distance. This is especially useful for DModX alarms, as it shows you *which variable* is "breaking" the correlation.
+        """)
 
     # Create a list of all points for selection
     point_labels = [f"Index {df.loc[i, meta_cols[0]]} ({df.loc[i, meta_cols[1]]})" for i in plot_index]
