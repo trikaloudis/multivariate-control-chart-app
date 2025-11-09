@@ -45,6 +45,14 @@ def main():
     pca_var_target = st.sidebar.slider("PCA Explained Variance Target", 0.80, 1.0, 0.95, 0.01,
                                        help="The minimum cumulative variance the PCA model should explain. This drives automatic component selection.")
 
+    # --- Add AquOmixLab Logo and Link at the bottom of the sidebar ---
+    st.sidebar.markdown("---") # Add a horizontal rule
+    logo_url = "https://raw.githubusercontent.com/trikaloudis/multivariate-control-chart-app/main/Aquomixlab%20Logo%20v2.png"
+    st.sidebar.image(logo_url, caption="AquOmixLab")
+    st.sidebar.markdown("[www.aquomixlab.com](https://www.aquomixlab.com)")
+    # --- End of Sidebar Additions ---
+
+
     if uploaded_file is None:
         st.info("Please upload a data file to begin analysis.")
         
